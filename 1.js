@@ -1,42 +1,34 @@
-const http = require('http');
+const express = require('express');
+const fs = require('fs');
+const path = require('path');
+const app = express();
 
-let count = 0;
+const counterFilePath = path.join(__dirname, 'counter.json');
 
-const server = http.createServer((req, res) => {
-    console.log('Запрос получен');
-
-    count += 1;
-
-    if (req.url === '/') {
-        res.writeHead(200, {
-            'Content-Type': 'text/html; charset=UTF-8',
-        });
-        res.end(`
-            <a href="/about">Перейти на страницу обо мне</a>
-            <h1>Просмотров: ${count}</h1>
-        `);
-    } else if (req.url === '/about') {
-        res.writeHead(200, {
-            'Content-Type': 'text/html; charset=UTF-8',
-        });
-        res.end(`
-            <a href="/">Перейти на главную страницу</a>
-            <h1>Просмотров: ${count}</h1>
-        `);
-    } else {
-        res.writeHead(404, {
-            'Content-Type': 'text/html; charset=UTF-8',
-        });
-        res.end(`
-            <h1>Страница не найдена</h1>
-            <h1>Просмотров: ${count}</h1>
-        `);
+function readCounter() {
+    if (fs.existsSync(counterFilePath)) {
+        const data = fs.readFileSync(counterFilePath, 'utf8');
+        return JSON.parse(data);
     }
+    return { home: 0, about: 0 };
+}
+
+function writeCounter(counter) {
+    fs.writeFileSync(counterFilePath, JSON.stringify(counter), 'utf8');
+}
+
+app.get('/', (req, res) => {
+    let counters = readCounter();
+    counters.home += 1;
+    writeCounter(counters);
+    res.send(`<h1>Добро пожаловать</h1><p>Количество посещений: ${counters.home}</p> <a href="/about">На страницу обо мне</a>`);
 });
 
-
-const port = 3000;
-
-server.listen(port, () => {
-    console.log(`запущен сервер на порту ${port}`);
+app.get('/about', (req, res) => {
+    let counters = readCounter();
+    counters.about += 1;
+    writeCounter(counters);
+    res.send(`<h1>Обо мне</h1><p>Количество посещений: ${counters.about}</p> <a href="/">На главную страницу</a>`);
 });
+
+app.listen(3000);
